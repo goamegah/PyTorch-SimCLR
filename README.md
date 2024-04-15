@@ -126,7 +126,7 @@ To install these requirements most conveniently, you can use the `requirements.t
 pip install -r requirements.txt
 ```
 
-![install-requirements](figures/install-requirements.png)
+![install-requirements](assets/figures/install-requirements.png)
 
 Then, after completing the installation, please check if all the packages are installed and are up to date using
 
@@ -134,12 +134,12 @@ Then, after completing the installation, please check if all the packages are in
 python python_environment_check.py
 ```
 
-![check_1](figures/check_1.png)
+![check_1](assets/figures/check_1.png)
 
 It's also recommended to check the versions in JupyterLab by running the `jupyter_environment_check.ipynb` in this 
 directory. Ideally, it should look like as follows:
 
-![check_1](figures/check_2.png)
+![check_1](assets/figures/check_2.png)
 
 
 ## More installation (Optional)
