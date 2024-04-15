@@ -92,7 +92,7 @@ Then, we train a linear classifier on top of the frozen features from SimCLR.
 The linear model is trained on features extracted from the ```MNIST train``` 
 set and evaluated on the ```MNIST test``` set.
 
-Check the [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/goamegah/s3ima/blob/master/s3ima/arch/SimCLR/prototype/eval.ipynb) notebook for reproducibility.
+Check the [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/goamegah/torchSimCLR/blob/main/demos/eval.ipynb) notebook for reproducibility.
 
 | Method                                | Architecture | Accuracy |
 |---------------------------------------|--------------|----------|
