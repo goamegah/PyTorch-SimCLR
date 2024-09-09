@@ -9,13 +9,13 @@ import torchvision
 import torch.backends.cudnn as cudnn
 from torchvision import transforms
 
-from torchSimCLR.models.resnet import ResNet18, BasicBlock
-from torchSimCLR.utils.evaluate import set_all_seeds, compute_confusion_matrix
+from simclr.models.resnet import ResNet18, BasicBlock
+from simclr.utils.evaluate import set_all_seeds, compute_confusion_matrix
 
-from torchSimCLR.utils.evaluate import compute_accuracy
-from torchSimCLR.utils.train import train
-from torchSimCLR.data.data_loader import get_dataloaders_mnist
-from torchSimCLR.utils.plotting import plot_training_loss, plot_accuracy, show_examples, plot_confusion_matrix
+from simclr.utils.evaluate import compute_accuracy
+from simclr.utils.train import train
+from simclr.data.data_loader import get_dataloaders_mnist
+from simclr.utils.plotting import plot_training_loss, plot_accuracy, show_examples, plot_confusion_matrix
 
 model_names = ['ResNet18']
 

@@ -3,9 +3,35 @@ import os
 import sys
 
 import torch
-from torch.utils.tensorboard import SummaryWriter
-from torchSimCLR.utils.config import save_config_file, save_checkpoint
+import wandb  # Import wandb
+from simclr.utils.config import save_config_file, save_checkpoint
+from simclr.utils.evaluate import accuracy
 
+def eval(model, 
+         optimizer, 
+         test_loader,
+         args, 
+         criterion=None):
+
+    for epoch in range(args.epochs):
+        top1_accuracy = 0
+        top5_accuracy = 0
+        for counter, (x_batch, y_batch) in enumerate(test_loader):
+            x_batch = x_batch.to(args.device)
+            y_batch = y_batch.to(args.device)
+
+            logits = model(x_batch)
+
+            top1, top5 = accuracy(logits, y_batch, topk=(1,5))
+            top1_accuracy += top1[0]
+            top5_accuracy += top5[0]
+
+        top1_accuracy /= (counter + 1)
+        top5_accuracy /= (counter + 1)
+        print(f"Epoch {epoch}\t"
+              f"Top1 Test accuracy: {top1_accuracy.item()}\t"
+              f"Top5 test accuracy: {top5_accuracy.item()}")
+    
 
 def train(model, optimizer,
           train_loader, valid_loader,
@@ -15,12 +41,14 @@ def train(model, optimizer,
 
     minibatch_loss_list, train_loss_list, train_acc_list, valid_loss_list, valid_acc_list = [], [], [], [], []
 
-    writer = SummaryWriter(log_dir=f'{name}_runs')
+    # Initialize wandb
+    wandb.init(project='simclr_fine_tuning', config=args)
+    wandb.watch(model, log='all')
+
     # config logging file
-    logging.basicConfig(filename=os.path.join(writer.log_dir, f'{name}.log'),
-                        level=logging.DEBUG)
+    logging.basicConfig(filename=f'{name}.log', level=logging.DEBUG)
     # save config file
-    save_config_file(writer.log_dir, args)
+    # save_config_file('wandb_run', args)
 
     loss_hist_valid = [0] * args.train_epochs
     accuracy_hist_valid = [0] * args.train_epochs
@@ -47,10 +75,13 @@ def train(model, optimizer,
             train_acc_epoch += accuracy
             minibatch_loss_list.append(loss_value)
 
-            # Enregistrement à chaque itération
-            writer.add_scalar(tag='train/loss', scalar_value=loss_value, global_step=n_iter)
-            writer.add_scalar(tag='train/acc', scalar_value=accuracy, global_step=n_iter)
-            n_iter += 1  # Mettre à jour le compteur global
+            # Log metrics to wandb
+            wandb.log({
+                'train/loss': loss_value,
+                'train/acc': accuracy,
+                'global_step': n_iter
+            })
+            n_iter += 1  # Update global step counter
 
         train_acc_list.append(train_acc_epoch/len(train_loader.dataset))
         train_loss_list.append(train_acc_epoch/len(train_loader.dataset))
@@ -58,7 +89,7 @@ def train(model, optimizer,
         if valid_loader is not None:
             valid_acc_epoch = 0
             valid_loss_epoch = 0
-            # Évaluation à chaque époque
+            # Evaluation at each epoch
             model.eval()
             with torch.no_grad():
                 for x_batch, y_batch in valid_loader:
@@ -77,8 +108,12 @@ def train(model, optimizer,
             valid_acc_list.append(valid_acc_epoch)
             valid_loss_list.append(valid_loss_epoch)
 
-            writer.add_scalar(tag='valid/loss', scalar_value=loss_hist_valid[epoch], global_step=epoch)
-            writer.add_scalar(tag='valid/acc', scalar_value=accuracy_hist_valid[epoch], global_step=epoch)
+            # Log validation metrics to wandb
+            wandb.log({
+                'valid/loss': loss_hist_valid[epoch],
+                'valid/acc': accuracy_hist_valid[epoch],
+                'epoch': epoch
+            })
 
             print(f'Epoch {epoch +1} '
                   f'val_accuracy: {accuracy_hist_valid[epoch]: .4f} '
@@ -88,14 +123,17 @@ def train(model, optimizer,
 
     logging.info("Training has finished.")
     # save model checkpoints
-    checkpoint_name = f'{args.arch}_train_{args.train_epochs:04d}.pth.tar'
+    checkpoint_name = f'./artefacts/{args.arch}_finetuned_{args.train_epochs:04d}.pth.tar'
     save_checkpoint(state={'epoch': args.train_epochs,
                            'arch': args.arch,
                            'state_dict': model.state_dict(),
                            'optimizer': optimizer.state_dict(),
                            },
                     is_best=False,
-                    filename=os.path.join(writer.log_dir, checkpoint_name))
-    logging.info(f"Model checkpoint and metadata has been saved at {writer.log_dir}.")
+                    filename=checkpoint_name)
+    logging.info(f"Model checkpoint and metadata has been saved.")
+
+    # Save model checkpoint to wandb
+    wandb.save(checkpoint_name)
 
     return minibatch_loss_list, train_acc_list, valid_acc_list

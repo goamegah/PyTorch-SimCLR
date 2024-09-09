@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torchSimCLR.models.resnet import ResNet18, BasicBlock
+from simclr.models.resnet import ResNet18, BasicBlock
 
 GRAYSCALE = True
 

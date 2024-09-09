@@ -55,8 +55,8 @@ if __name__ == '__main__':
         'torch': '2.0.1',
         'torchvision': '0.15.2',
         'torchmetrics': '0.11.4',
-        'transformers': '4.30.2',
-        'lightning': '2.0.3'
+        'tqdm' : '4.66.5',
+        'wandb' : '0.17.9'
 
     }
     check_packages(d)

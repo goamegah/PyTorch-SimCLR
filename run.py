@@ -5,15 +5,16 @@ from torch.nn import CrossEntropyLoss
 from torchvision import models
 from torch.utils.data import DataLoader
 
-from torchSimCLR.data.simclr_dataset import SimclrDataset
-from torchSimCLR.utils.simclr_train import train_simclr
-from torchSimCLR.modules.simclr import SimCLR
-from torchSimCLR.models.resnet import ResNet18, BasicBlock
+from simclr.data.simclr_dataset import SimclrDataset
+from simclr.utils.simclr_train_v2 import train_simclr
+from simclr.modules.simclr import SimCLR
+from simclr.models.resnet import ResNet18, BasicBlock
 
-from torchSimCLR.utils.train import train
-from torchSimCLR.data.data_loader import get_dataloaders_mnist
-from torchSimCLR.utils.evaluate import set_all_seeds, compute_confusion_matrix, compute_accuracy, compute_topk_accuracy
-from torchSimCLR.utils.plotting import plot_training_loss, plot_accuracy, show_examples, plot_confusion_matrix
+from simclr.utils.config import load_model
+from simclr.utils.train_v2 import train, eval
+from simclr.data.data_loader import get_dataloaders_mnist
+from simclr.utils.evaluate import set_all_seeds, compute_confusion_matrix, compute_accuracy, compute_topk_accuracy
+from simclr.utils.plotting import plot_training_loss, plot_accuracy, show_examples, plot_confusion_matrix
 import matplotlib.pyplot as plt
 import os
 import pickle
@@ -36,7 +37,7 @@ parser.add_argument('-d', '--data',
 parser.add_argument('-m', '--mode',
                     default='train',
                     help='Whether to perform training or evaluation.',
-                    choices=['train', 'eval', 'train-then-eval'])
+                    choices=['train', 'eval'])
 
 parser.add_argument('-tm', '--train-mode',
                     default='finetune',
@@ -98,6 +99,11 @@ parser.add_argument('--wd', '--weight-decay',
                     help='weight decay (default: 1e-4)',
                     dest='weight_decay')
 
+parser.add_argument('--model-path',
+                    default='./artefacts/simclr_finetuned.pth',
+                    type=str,
+                    help='model path for evaluation')
+
 parser.add_argument('--seed',
                     default=1,
                     type=int,
@@ -154,37 +160,27 @@ def main():
     set_all_seeds(args.seed)
 
     if args.mode == "eval":
-        train_dl, valid_dl, test_dl = get_dataloaders_mnist(batch_size=10, eval_batch_size=256,
-                                                            num_workers=8, train_size=100)
-        checkpoint = torch.load(f=f'./train_run/{args.arch}_train_{args.train_epochs:04d}.pth.tar')
-        state_dict = checkpoint['state_dict']
+        _, _, test_dl = get_dataloaders_mnist(batch_size=10, eval_batch_size=256,
+                                              num_workers=8, train_size=100)
+        
+        checkpoint = torch.load(args.model_path, map_location=args.device)
 
         model = ResNet18(num_layers=18,
                          block=BasicBlock,
                          num_classes=10,
                          grayscale=True)
 
-        log = model.load_state_dict(state_dict, strict=False)
-        assert log.missing_keys == ''
-
-        model.to(device=args.device)
+        model.load_state_dict(checkpoint).to(device=args.device)
 
         optimizer = torch.optim.Adam(model.parameters(), lr=3e-4, weight_decay=0.0008)
         criterion = CrossEntropyLoss()
 
-        train(model=model, optimizer=optimizer, criterion=criterion,
-              train_loader=train_dl, valid_loader=test_dl, test_loader=test_dl, args=args)
-
-        print(f'>>> Test accuracy topk: ')
-        compute_topk_accuracy(model=model, dataloader=test_dl, args=args, topk=(1, 5))
-
-        # verification of results
-        test_acc = compute_accuracy(model=model, data_loader=test_dl, device=args.device)
-        print(f'>>> Test accuracy {test_acc :.2f}%')
-
+        eval(model=model, optimizer=optimizer, 
+             criterion=criterion, test_loader=test_dl, args=args)
+        
     else:  # train
 
-        if args.train_mode == 'pretrained':
+        if args.train_mode == 'pretrain':
             model = SimCLR(projection_dim=args.out_dim)
 
             simclr_ds = SimclrDataset(root=args.data)
@@ -210,22 +206,15 @@ def main():
             with torch.cuda.device(args.gpu_index):
                 train_simclr(model=model, optimizer=optimizer, scheduler=scheduler,
                              train_loader=train_dl, args=args, criterion=criterion)
-        else:
+        else: # fine-tuning mode 
+
             # dict for saving results
             summary = {}
 
             train_dl, valid_dl, test_dl = get_dataloaders_mnist(batch_size=10, eval_batch_size=256,
                                                                 num_workers=8, train_size=100)
-            checkpoint = torch.load(f='./prototype/resnet_pretrained.tar', map_location=args.device)
-            state_dict = checkpoint['state_dict']
+            state_dict = load_model(model_path='https://papereplbucket.s3.eu-west-3.amazonaws.com/simclr/checkpoint_0100.pth.tar', device=args.device)
 
-            for k in list(state_dict.keys()):
-
-                if k.startswith('backbone.'):
-                    if k.startswith('backbone') and not k.startswith('backbone.fc'):
-                        # remove prefix
-                        state_dict[k[len("backbone."):]] = state_dict[k]
-                del state_dict[k]
 
             model = ResNet18(num_layers=18,
                              block=BasicBlock,
@@ -240,26 +229,27 @@ def main():
             optimizer = torch.optim.Adam(model.parameters(), lr=3e-4, weight_decay=0.0008)
             criterion = CrossEntropyLoss()
 
-            minibatch_loss_list, train_acc_list, valid_acc_list = train(model=model, optimizer=optimizer,
-                                                                        criterion=criterion, train_loader=train_dl,
-                                                                        valid_loader=test_dl, test_loader=test_dl,
-                                                                        args=args)
-            plot_training_loss(minibatch_loss_list=minibatch_loss_list,
-                               num_epochs=args.train_epochs,
-                               iter_per_epoch=len(train_dl),
-                               results_dir="./figures",
-                               averaging_iterations=10)
-            plt.show()
+            _, _, _ = train(model=model, optimizer=optimizer,
+                            criterion=criterion, train_loader=train_dl,
+                            valid_loader=test_dl, test_loader=test_dl,
+                            args=args)
+            
+            # plot_training_loss(minibatch_loss_list=minibatch_loss_list,
+            #                    num_epochs=args.train_epochs,
+            #                    iter_per_epoch=len(train_dl),
+            #                    results_dir="./assets/plots",
+            #                    averaging_iterations=10)
+            # plt.show()
 
-            plot_accuracy(train_acc_list=train_acc_list,
-                          valid_acc_list=valid_acc_list,
-                          results_dir='./figures')
-            # plt.ylim([80, 100])
-            plt.show()
+            # plot_accuracy(train_acc_list=train_acc_list,
+            #               valid_acc_list=valid_acc_list,
+            #               results_dir='./assets/plots')
+            # # plt.ylim([80, 100])
+            # plt.show()
 
             model.cpu()
-            show_examples(model=model, data_loader=test_dl, results_dir='./figures')
-            plt.show()
+            # show_examples(model=model, data_loader=test_dl, results_dir='./figures')
+            # plt.show()
 
             # class used for confusion matrix axis ticks
             class_dict = {0: '0',
@@ -279,28 +269,28 @@ def main():
                                            device=torch.device('cpu'))
             plot_confusion_matrix(mat,
                                   class_names=class_dict.values(),
-                                  results_dir='./figures')
-            plt.show()
+                                  results_dir='./assets/plots')
+            # plt.show()
 
-            summary['minibatch_loss_list'] = minibatch_loss_list
-            summary['valid_acc_list'] = valid_acc_list
-            summary['train_acc_list'] = train_acc_list
-            summary['confusion_matrix'] = mat
-            summary['num_epochs'] = args.train_epochs
-            summary['iter_per_epoch'] = len(train_dl)
-            summary['averaging_iterations'] = 10
+            # summary['minibatch_loss_list'] = minibatch_loss_list
+            # summary['valid_acc_list'] = valid_acc_list
+            # summary['train_acc_list'] = train_acc_list
+            # summary['confusion_matrix'] = mat
+            # summary['num_epochs'] = args.train_epochs
+            # summary['iter_per_epoch'] = len(train_dl)
+            # summary['averaging_iterations'] = 10
 
             # Save trained arch for further usage
-            os.makedirs(name="./saved_data", exist_ok=True)
+            os.makedirs(name="./artefacts", exist_ok=True)
 
             # save dictionary to person_data.pkl file
-            with open('./saved_data/SimCLR_summary.pkl', 'wb') as fp:
-                pickle.dump(summary, fp)
-                print('dictionary saved successfully to file')
+            # with open('./artefacts/simclr_finetuned_summary.pkl', 'wb') as fp:
+            #     pickle.dump(summary, fp)
+            #     print('dictionary saved successfully to file')
 
             # save
-            torch.save(obj=model.state_dict(), f="saved_data/model.pt")
-            torch.save(obj=optimizer.state_dict(), f="saved_data/optimizer.pt")
+            torch.save(obj=model.state_dict(), f="./artefacts/simclr_finetuned.pt")
+            torch.save(obj=optimizer.state_dict(), f="./artefacts/simclr_optimizer.pt")
 
 
 if __name__ == "__main__":

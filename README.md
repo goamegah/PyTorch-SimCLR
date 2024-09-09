@@ -1,10 +1,7 @@
 # Pytorch simCLR experiments
 
 
-## Constraints
-We assume that we have 100 labeled data samples to train a deep learning architecture for image classification tasks. Our dataset is MNIST handwritten digit. So we have 100 images and 100 labels.
-
-## Models Overview
+### Models Overview
 
 <div align="center">
   <img width="50%" alt="SimCLR Illustration" src="https://1.bp.blogspot.com/--vH4PKpE9Yo/Xo4a2BYervI/AAAAAAAAFpM/vaFDwPXOyAokAC8Xh852DzOgEs22NhbXwCLcBGAsYHQ/s1600/image4.gif">
@@ -15,8 +12,10 @@ We assume that we have 100 labeled data samples to train a deep learning archite
   An illustration of SimCLR (from <a href="https://github.com/google-research/simclr/blob/master/README.md">google-research SimCLR repository</a>).
 </div>
 
+## Data Constraints
+We assume that we have 100 labeled data samples to train a deep learning architecture for image classification tasks. Our dataset is MNIST handwritten digit. So we have 100 images and 100 labels.
 
-## Run Models
+## How Run Models
 In order to run models, try the following commands according to specific model.
 
 ### LeNet5
@@ -86,21 +85,18 @@ Then, we train a linear classifier on top of the frozen features from SimCLR.
 The linear model is trained on features extracted from the ```MNIST train``` 
 set and evaluated on the ```MNIST test``` set.
 
-Check the [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/goamegah/torchSimCLR/blob/main/demos/eval.ipynb) notebook for reproducibility.
+Check the [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/goamegah/torchSimCLR/blob/main/demos/simclr_eval.ipynb) notebook for reproducibility.
 
-| Method                                | Architecture | Accuracy |
+| Method                                | Architecture |Accuracy |
 |---------------------------------------|--------------|----------|
 | Supervised baseline                   | LeNet-5      | `73.73`  |
 | Supervised baseline                   | ResNet-18    | `73.26`  |
 | SimCLR                                | ResNet-18    | `93.84`  |
 
-*Données entraînées sur* **100 epochs**.
+*models are trained on* **100 epochs**.
 
 
 ## Libraries Used In This Project
-
-We will be using the following libraries in this workshop, and I highly recommend 
-installing them before attending the event:
 
 - numpy >= 1.24.3 (The fundamental package for scientific computing with Python)
 - scipy >= 1.10.1 (Additional functions for NumPy)
@@ -113,6 +109,12 @@ installing them before attending the event:
 - torch >= 2.0.1 (The PyTorch deep learning library)
 - torchvision >= 0.15.2 (PyTorch utilities for computer vision)
 - torchmetrics >= 0.11.4 (Metrics for PyTorch)
+- wandb (Model monitoring)
+
+[OPTIONAL PACKAGES]
+
+- TensorboardX
+- wandb 
 
 To install these requirements most conveniently, you can use the `requirements.txt` file:
 
@@ -128,12 +130,7 @@ Then, after completing the installation, please check if all the packages are in
 python python_environment_check.py
 ```
 
-![check_1](assets/figures/check_1)
-
-It's also recommended to check the versions in JupyterLab by running the `jupyter_environment_check.ipynb` in this 
-directory. Ideally, it should look like as follows:
-
-![check_1](assets/figures/check_2)
+![check1](assets/figures/check1.png)
 
 
 ## More installation (Optional)
