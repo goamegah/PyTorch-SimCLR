@@ -2,13 +2,14 @@ import os
 import argparse
 
 
-from torchSimCLR.models.lenet import LeNet5
-from torchSimCLR.utils.evaluate import set_all_seeds, compute_confusion_matrix, compute_accuracy
-from torchSimCLR.utils.train import train
-from torchSimCLR.utils.plotting import plot_training_loss, plot_accuracy, show_examples, plot_confusion_matrix
-from torchSimCLR.data.data_loader import get_dataloaders_mnist
+from simclr.models.lenet import LeNet5
+from simclr.utils.evaluate import set_all_seeds, compute_confusion_matrix, compute_accuracy
+from simclr.utils.train_v2 import train
+from simclr.utils.plotting import plot_training_loss, plot_accuracy, show_examples, plot_confusion_matrix
+from simclr.data.data_loader import get_dataloaders_mnist
 
 import torch
+from torch.nn import CrossEntropyLoss
 import torch.backends.cudnn as cudnn
 import torchvision
 import matplotlib.pyplot as plt
@@ -24,7 +25,7 @@ model_names = ['LeNet5']
 # SETTINGS
 ##########################
 
-parser = argparse.ArgumentParser(description='PyTorch ResNet')
+parser = argparse.ArgumentParser(description='PyTorch LeNet')
 
 parser.add_argument('-m', '--mode',
                     metavar='MODE',
@@ -56,11 +57,11 @@ parser.add_argument('-j', '--workers',
                     metavar='N',
                     help='number of data loading workers (default: 32)')
 
-parser.add_argument('--epochs',
+parser.add_argument('-te', '--train-epochs',
                     default=100,
                     type=int,
-                    metavar='N',
-                    help='number of total epochs to run')
+                    metavar='TE',
+                    help='number of total epochs to run train')
 
 parser.add_argument('-b', '--batch-size',
                     default=10,
@@ -140,18 +141,18 @@ def main():
          torchvision.transforms.ToTensor(),
          torchvision.transforms.Normalize(mean=(0.5,), std=(0.5,))])
 
-    train_loader, valid_loader, test_loader = get_dataloaders_mnist(args=args,
-                                                                    validation_fraction=0.3,
+    train_loader, valid_loader, test_loader = get_dataloaders_mnist(batch_size=10, eval_batch_size=256,
+                                              num_workers=8, train_size=100,
                                                                     train_transforms=resize_transform,
                                                                     test_transforms=resize_transform)
 
-    print('size of sample train dataset:', len(train_loader))
+    print('size of sample train dataset:', len(valid_loader.dataset))
     # Checking the dataset
-    for images, labels in train_loader:
-        print('Image batch dimensions:', images.shape)
-        print('Image label dimensions:', labels.shape)
-        print('Class labels of 10 examples:', labels[:10])
-        break
+    # for images, labels in train_loader:
+    #     print('Image batch dimensions:', images.shape)
+    #     print('Image label dimensions:', labels.shape)
+    #     print('Class labels of 10 examples:', labels[:10])
+    #     break
 
     model = LeNet5(grayscale=True, num_classes=10)
     model.to(device=args.device)
@@ -161,39 +162,39 @@ def main():
                                                            factor=0.1,
                                                            mode='max',
                                                            verbose=True)
+    criterion = CrossEntropyLoss()
 
     if args.mode == 'train':
         # dict for saving results
         summary = {}
 
         # train arch
-        minibatch_loss_list, train_acc_list, valid_acc_list = train(
-            model=model,
-            num_epochs=args.epochs,
-            train_loader=train_loader,
-            valid_loader=valid_loader,
-            test_loader=test_loader,
-            optimizer=optimizer,
-            device=args.device,
-            logging_interval=args.log_every_n_steps)
+        _, _, _ = train(model=model,
+                        optimizer=optimizer,
+                        train_loader=train_loader,
+                        valid_loader=test_loader,
+                        test_loader=test_loader,
+                        args=args,
+                        name='LeNet5',
+                        criterion=criterion)
 
         # display training loss function
-        plot_training_loss(minibatch_loss_list=minibatch_loss_list,
-                           num_epochs=args.epochs,
-                           iter_per_epoch=len(train_loader),
-                           results_dir="./figures",
-                           averaging_iterations=10)
-        plt.show()
+        # plot_training_loss(minibatch_loss_list=minibatch_loss_list,
+        #                    num_epochs=args.epochs,
+        #                    iter_per_epoch=len(train_loader),
+        #                    results_dir=".assets/plots",
+        #                    averaging_iterations=10)
+        # plt.show()
 
-        plot_accuracy(train_acc_list=train_acc_list,
-                      valid_acc_list=valid_acc_list,
-                      results_dir='./figures')
-        # plt.ylim([80, 100])
-        plt.show()
+        # plot_accuracy(train_acc_list=train_acc_list,
+        #               valid_acc_list=valid_acc_list,
+        #               results_dir='.assets/plots')
+        # # plt.ylim([80, 100])
+        # plt.show()
 
         model.cpu()
-        show_examples(model=model, data_loader=test_loader, results_dir='./figures')
-        plt.show()
+        # show_examples(model=model, data_loader=test_loader, results_dir='./figures')
+        # plt.show()
 
         # class used for confusion matrix axis ticks
         class_dict = {0: '0',
@@ -213,32 +214,32 @@ def main():
                                        device=torch.device('cpu'))
         plot_confusion_matrix(mat,
                               class_names=class_dict.values(),
-                              results_dir='./figures')
-        plt.show()
+                              results_dir='./assets/plots')
+        # plt.show()
 
-        summary['minibatch_loss_list'] = minibatch_loss_list
-        summary['valid_acc_list'] = valid_acc_list
-        summary['train_acc_list'] = train_acc_list
-        summary['confusion_matrix'] = mat
-        summary['num_epochs'] = args.epochs
-        summary['iter_per_epoch'] = len(train_loader)
-        summary['averaging_iterations'] = 10
+        # summary['minibatch_loss_list'] = minibatch_loss_list
+        # summary['valid_acc_list'] = valid_acc_list
+        # summary['train_acc_list'] = train_acc_list
+        # summary['confusion_matrix'] = mat
+        # summary['num_epochs'] = args.epochs
+        # summary['iter_per_epoch'] = len(train_loader)
+        # summary['averaging_iterations'] = 10
 
         # Save trained arch for further usage
-        os.makedirs("./saved_data", exist_ok=True)
+        # os.makedirs("./saved_data", exist_ok=True)
 
         # save dictionary to person_data.pkl file
-        with open('./saved_data/LeNet5_summary.pkl', 'wb') as fp:
-            pickle.dump(summary, fp)
-            print('dictionary saved successfully to file')
+        # with open('./saved_data/LeNet5_summary.pkl', 'wb') as fp:
+        #     pickle.dump(summary, fp)
+        #     print('dictionary saved successfully to file')
 
-        torch.save(obj=model.state_dict(), f="saved_data/model.pt")
-        torch.save(obj=optimizer.state_dict(), f="./saved_data/optimizer.pt")
-        torch.save(obj=scheduler.state_dict(), f="./saved_data/scheduler.pt")
+        # torch.save(obj=model.state_dict(), f=f"./saved_data/{args.arch}.pt")
+        # torch.save(obj=optimizer.state_dict(), f=f"./saved_data/{args.arch}_optimizer.pt")
+        # torch.save(obj=scheduler.state_dict(), f=f"./saved_data/{args.arch}_scheduler.pt")
 
     # eval
     else:
-        model.load_state_dict(state_dict=torch.load(f="./saved_data/model.pt"))
+        model.load_state_dict(state_dict=torch.load(f=f"./saved_data/{args.arch}.pt"))
         # model is assume to be trained
         # optimizer.load_state_dict(state_dict=torch.load(f="saved_data/optimizer.pt"))
 

@@ -6,12 +6,12 @@ from setuptools import setup, find_packages
 NAME = 'torchSimCLR'
 DESCRIPTION = 'PyTorch SimCLR: A Simple Framework for Contrastive Learning of Visual Representations'
 
-URL = 'https://github.com/goamegah/torchSimCLR'
+URL = 'https://github.com/goamegah/PyTorch-SimCLR'
 AUTHOR = 'Godwin AMEGAH'
 EMAIL = 'komlan.godwin.amegah@gmail.com'
 REQUIRES_PYTHON = '>=3.6'
 
-for line in open('torchSimCLR/__init__.py'):
+for line in open('simclr/__init__.py'):
     line = line.strip()
     if '__version__' in line:
         context = {}
@@ -51,10 +51,10 @@ setup(
     install_requires=REQUIRED,
     extras_require={
         'dev': ['coverage', 'flake8', 'pytest', 'torchinfo', 'tabulate'],
-        'vis': ['umap-learn', 'matplotlib', 'tensorboardX']
+        'vis': ['matplotlib', 'tensorboardX', 'wandb'],
     },
-    packages=[p for p in find_packages() if p.startswith('torchSTC')],
-    # package_data={'torchSimCLR': ['py.typed']},
+    packages=[p for p in find_packages() if p.startswith('simclr')],
+    # package_data={'simclr': ['py.typed']},
     include_package_data=True,
     license='MIT License',
     classifiers=[

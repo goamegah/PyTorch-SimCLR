@@ -33,20 +33,23 @@ def eval(model,
               f"Top5 test accuracy: {top5_accuracy.item()}")
     
 
-def train(model, optimizer,
-          train_loader, valid_loader,
-          test_loader, args,
+def train(model, 
+          optimizer,
+          train_loader, 
+          valid_loader,
+          test_loader, 
+          args,
           name='training',
           criterion=None):
 
     minibatch_loss_list, train_loss_list, train_acc_list, valid_loss_list, valid_acc_list = [], [], [], [], []
 
     # Initialize wandb
-    wandb.init(project='simclr_fine_tuning', config=args)
+    wandb.init(project=name, config=args)
     wandb.watch(model, log='all')
 
     # config logging file
-    logging.basicConfig(filename=f'{name}.log', level=logging.DEBUG)
+    logging.basicConfig(filename=f'./logs/{name}.log', level=logging.DEBUG, filemode='w')
     # save config file
     # save_config_file('wandb_run', args)
 
@@ -122,8 +125,9 @@ def train(model, optimizer,
                   f'train data: {len(train_loader.dataset)} ')
 
     logging.info("Training has finished.")
+
     # save model checkpoints
-    checkpoint_name = f'./artefacts/{args.arch}_finetuned_{args.train_epochs:04d}.pth.tar'
+    checkpoint_name = f'./artefacts/{args.arch}_{args.mode}_{args.train_epochs:04d}.pth.tar'
     save_checkpoint(state={'epoch': args.train_epochs,
                            'arch': args.arch,
                            'state_dict': model.state_dict(),
@@ -131,6 +135,7 @@ def train(model, optimizer,
                            },
                     is_best=False,
                     filename=checkpoint_name)
+    
     logging.info(f"Model checkpoint and metadata has been saved.")
 
     # Save model checkpoint to wandb

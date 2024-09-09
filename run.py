@@ -232,7 +232,7 @@ def main():
             _, _, _ = train(model=model, optimizer=optimizer,
                             criterion=criterion, train_loader=train_dl,
                             valid_loader=test_dl, test_loader=test_dl,
-                            args=args)
+                            args=args, name='simclr_fine_tuning')
             
             # plot_training_loss(minibatch_loss_list=minibatch_loss_list,
             #                    num_epochs=args.train_epochs,
