@@ -165,3 +165,4 @@ saved_data/
 pysim/
 datasets/
 eval_runs/
+logs/

@@ -57,6 +57,5 @@ if __name__ == '__main__':
         'torchmetrics': '0.11.4',
         'tqdm' : '4.66.5',
         'wandb' : '0.17.9'
-
     }
     check_packages(d)
