@@ -1,7 +1,7 @@
 # Pytorch simCLR experiments
 
+### Original Paper:  [A Simple Framework for Contrastive Learning of Visual Representations](https://arxiv.org/abs/2002.05709)
 
-### Models Overview
 
 <div align="center">
   <img width="50%" alt="SimCLR Illustration" src="https://1.bp.blogspot.com/--vH4PKpE9Yo/Xo4a2BYervI/AAAAAAAAFpM/vaFDwPXOyAokAC8Xh852DzOgEs22NhbXwCLcBGAsYHQ/s1600/image4.gif">
@@ -109,7 +109,7 @@ Check the [![Open In Colab](https://colab.research.google.com/assets/colab-badge
 - torch >= 2.0.1 (The PyTorch deep learning library)
 - torchvision >= 0.15.2 (PyTorch utilities for computer vision)
 - torchmetrics >= 0.11.4 (Metrics for PyTorch)
-- wandb (Model monitoring)
+- wandb >= 0.17.9 (Web server for Model monitoring)
 
 [OPTIONAL PACKAGES]
 
