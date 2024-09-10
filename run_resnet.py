@@ -1,21 +1,31 @@
 import os
-import pickle
-
-import matplotlib.pyplot as plt
+import json
 import argparse
 
 import torch
+from torch.nn import CrossEntropyLoss
 import torchvision
 import torch.backends.cudnn as cudnn
-from torchvision import transforms
+
+from simclr.data.data_loader import get_dataloaders_mnist
 
 from simclr.models.resnet import ResNet18, BasicBlock
 from simclr.utils.evaluate import set_all_seeds, compute_confusion_matrix
+from simclr.utils.train_v2 import train, eval
+from simclr.utils.plotting import show_examples, plot_confusion_matrix
+from simclr.utils.config import load_checkpoint
 
-from simclr.utils.evaluate import compute_accuracy
-from simclr.utils.train import train
-from simclr.data.data_loader import get_dataloaders_mnist
-from simclr.utils.plotting import plot_training_loss, plot_accuracy, show_examples, plot_confusion_matrix
+from dotenv import load_dotenv
+load_dotenv()
+
+ROOT_DIR = os.getenv('ROOT_DIR')
+
+# Load configuration from JSON file
+with open(f'{ROOT_DIR}/simclr/config/config_ckpt.json', 'r') as f:
+    config = json.load(f)
+
+model_urls = config['model_urls']
+CHECKPOINT_PATH = model_urls['resnet18_train_0100']
 
 model_names = ['ResNet18']
 
@@ -55,11 +65,17 @@ parser.add_argument('-j', '--workers',
                     metavar='N',
                     help='number of data loading workers (default: 32)')
 
-parser.add_argument('--epochs',
+parser.add_argument('-te', '--train-epochs',
                     default=100,
                     type=int,
+                    metavar='TE',
+                    help='number of total epochs to run train')
+
+parser.add_argument('-ee', '--eval-epochs',
+                    default=10,
+                    type=int,
                     metavar='N',
-                    help='number of total epochs to run')
+                    help='number of total epochs to run test')
 
 parser.add_argument('-b', '--batch-size',
                     default=10,
@@ -127,6 +143,7 @@ def main():
         args.gpu_index = -1
 
     set_all_seeds(args.seed)
+    torch.manual_seed(args.seed)
 
     # Other
     GRAYSCALE = True  # for MNIST dataset
@@ -145,23 +162,10 @@ def main():
          torchvision.transforms.ToTensor(),
          torchvision.transforms.Normalize((0.5,), (0.5,))])
 
-    train_loader, valid_loader, test_loader = get_dataloaders_mnist(  # batch_size=batch_size,
-        args=args,
-        validation_fraction=0.3,
-        train_transforms=resize_transform,
-        test_transforms=resize_transform)
-
-    print('size of sample train dataset:', len(train_loader))
-    print('size of sample valid dataset:', len(valid_loader))
-    print('size of sample test dataset:', len(test_loader))
-    # Checking the dataset
-    for images, labels in train_loader:
-        print('Image batch dimensions:', images.shape)
-        print('Image label dimensions:', labels.shape)
-        print('Class labels of 10 examples:', labels[:10])
-        break
-
-    torch.manual_seed(args.seed)
+    train_loader, valid_loader, test_loader = get_dataloaders_mnist(batch_size=10, eval_batch_size=256,
+                                                                    num_workers=8, train_size=100,
+                                                                    train_transforms=resize_transform,
+                                                                    test_transforms=resize_transform)
 
     model = ResNet18(num_layers=18,
                      block=BasicBlock,
@@ -169,54 +173,24 @@ def main():
                      grayscale=GRAYSCALE)
 
     model.to(args.device)
-    # print(model)
 
-    # Total parameters and trainable parameters.
-    # total_params = sum(p.numel() for p in model.parameters())
-    # print(f"{total_params:,} total parameters.")
-    # total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    # print(f"{total_trainable_params:,} training parameters.")
-
-    # Passing Dummy Tensor
-    ######################
-
-    # tensor = torch.rand([1, 3, 224, 224])
-    # output = model(tensor)
-
+    criterion = CrossEntropyLoss()
     optimizer = torch.optim.Adam(params=model.parameters(), lr=args.lr)
 
     if args.mode == 'train':
-        # dict for saving results
-        summary = {}
 
-        minibatch_loss_list, train_acc_list, valid_acc_list = train(
-            model=model,
-            num_epochs=args.epochs,
-            train_loader=train_loader,
-            valid_loader=valid_loader,
-            test_loader=test_loader,
-            optimizer=optimizer,
-            device=args.device,
-            logging_interval=5
-        )
-
-        # display training loss function
-        plot_training_loss(minibatch_loss_list=minibatch_loss_list,
-                           num_epochs=args.epochs,
-                           iter_per_epoch=len(train_loader),
-                           results_dir='./figures',
-                           averaging_iterations=args.log_every_n_steps)
-        plt.show()
-
-        plot_accuracy(train_acc_list=train_acc_list,
-                      valid_acc_list=valid_acc_list,
-                      results_dir='./figures')
-        # plt.ylim([80, 100])
-        plt.show()
+        _, _, _ = train(model=model,
+                        optimizer=optimizer,
+                        train_loader=train_loader,
+                        valid_loader=valid_loader,
+                        test_loader=test_loader,
+                        args=args,
+                        name='Resnet18',
+                        criterion=criterion)
 
         model.cpu()
-        show_examples(model=model, data_loader=test_loader, results_dir='./figures')
-        plt.show()
+        # show_examples(model=model, data_loader=test_loader, results_dir='./figures')
+        # plt.show()
 
         class_dict = {0: '0',
                       1: '1',
@@ -231,36 +205,18 @@ def main():
 
         mat = compute_confusion_matrix(model=model, data_loader=test_loader, device=torch.device('cpu'))
         # print(mat)
-        plot_confusion_matrix(mat, class_names=class_dict.values(), results_dir='./figures')
-        plt.show()
-
-        summary['minibatch_loss_list'] = minibatch_loss_list
-        summary['valid_acc_list'] = valid_acc_list
-        summary['train_acc_list'] = train_acc_list
-        summary['confusion_matrix'] = mat
-        summary['num_epochs'] = args.epochs
-        summary['iter_per_epoch'] = len(train_loader)
-        summary['averaging_iterations'] = 10
-
-        # Save trained arch for further usage
-        os.makedirs("./saved_data", exist_ok=True)
-
-        # save dictionary to person_data.pkl file
-        with open('./saved_data/ResNet18_summary.pkl', 'wb') as fp:
-            pickle.dump(summary, fp)
-            print('dictionary saved successfully to file')
-
-        # save
-        torch.save(obj=model.state_dict(), f="saved_data/model.pt")
-        torch.save(obj=optimizer.state_dict(), f="saved_data/optimizer.pt")
-        # torch.save(obj=scheduler.state_dict(),f="saved_data/scheduler.pt")
+        plot_confusion_matrix(mat, class_names=class_dict.values(), results_dir='./assets/plots')
+        # plt.show()
 
     else:  # eval mode
-        model.load_state_dict(state_dict=torch.load(f="saved_data/model.pt"))
-        optimizer.load_state_dict(state_dict=torch.load(f="saved_data/optimizer.pt"))
+        
+        ckpt = load_checkpoint(model_path=CHECKPOINT_PATH, device=args.device)
+        state_dict = ckpt['state_dict']
 
-        test_acc = compute_accuracy(model, test_loader, device=args.device)
-        print(f'Test accuracy {test_acc :.2f}%')
+        model.load_state_dict(state_dict, strict=False)
+        model = model.to(device=args.device)
+        
+        eval(model, test_loader, args)
 
 
 if __name__ == '__main__':

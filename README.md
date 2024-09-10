@@ -1,7 +1,7 @@
 # Pytorch simCLR experiments
 
+### Original Paper:  [A Simple Framework for Contrastive Learning of Visual Representations](https://arxiv.org/abs/2002.05709)
 
-### Models Overview
 
 <div align="center">
   <img width="50%" alt="SimCLR Illustration" src="https://1.bp.blogspot.com/--vH4PKpE9Yo/Xo4a2BYervI/AAAAAAAAFpM/vaFDwPXOyAokAC8Xh852DzOgEs22NhbXwCLcBGAsYHQ/s1600/image4.gif">
@@ -21,7 +21,7 @@ In order to run models, try the following commands according to specific model.
 ### LeNet5
 
 ```shell
-$ python run_lenet.py --mode train --epochs 100 
+$ python run_lenet.py --mode train --train-epochs 100 
 ```
 
 Let's breaking down available flags
@@ -37,7 +37,7 @@ Let's breaking down available flags
 ### ResNet-18
 
 ```shell
-$ python run_resnet.py --mode train --epochs 100 
+$ python run_resnet.py --mode train --train-epochs 100 
 ```
 
 Let's breaking down available flags
@@ -50,10 +50,10 @@ Let's breaking down available flags
 - ```-eval-batch-size```: eval batch size when **eval mode**
 - ```--lr```, ```--learning-rate```: learning rate
 
-### SimCLR
+### SimCLR-Resnet18
 
 ```shell
-$ python run.py --mode train --train-mode finetune --train-epochs 100
+$ python run.py --mode train --train-mode finetune --train-epochs 10
 ```
 
 Let's breaking down available flags
@@ -109,7 +109,7 @@ Check the [![Open In Colab](https://colab.research.google.com/assets/colab-badge
 - torch >= 2.0.1 (The PyTorch deep learning library)
 - torchvision >= 0.15.2 (PyTorch utilities for computer vision)
 - torchmetrics >= 0.11.4 (Metrics for PyTorch)
-- wandb (Model monitoring)
+- wandb >= 0.17.9 (Web server for Model monitoring)
 
 [OPTIONAL PACKAGES]
 
