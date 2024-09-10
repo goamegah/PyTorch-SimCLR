@@ -1,0 +1,9 @@
+{
+    "model_urls": {
+        "resnet18_train_0030": "https://papereplbucket.s3.eu-west-3.amazonaws.com/simclr/resnet18_train_0030.pth.tar",
+        "resnet18_train_0100": "https://papereplbucket.s3.eu-west-3.amazonaws.com/simclr/resnet18_train_0100.pth.tar",
+        "lenet5_train_0100": "https://papereplbucket.s3.eu-west-3.amazonaws.com/simclr/LeNet5_train_0100.pth.tar",
+        "simclr_resnet18_pretrained_ckpt": "https://papereplbucket.s3.eu-west-3.amazonaws.com/simclr/checkpoint_0100.pth.tar",
+        "simclr_resnet18_finetuned_ckpt": "https://papereplbucket.s3.eu-west-3.amazonaws.com/simclr/simclr_resnet18_train_0010.pth.tar"
+    }
+}

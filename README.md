@@ -21,7 +21,7 @@ In order to run models, try the following commands according to specific model.
 ### LeNet5
 
 ```shell
-$ python run_lenet.py --mode train --epochs 100 
+$ python run_lenet.py --mode train --train-epochs 100 
 ```
 
 Let's breaking down available flags
@@ -37,7 +37,7 @@ Let's breaking down available flags
 ### ResNet-18
 
 ```shell
-$ python run_resnet.py --mode train --epochs 100 
+$ python run_resnet.py --mode train --train-epochs 100 
 ```
 
 Let's breaking down available flags
@@ -50,10 +50,10 @@ Let's breaking down available flags
 - ```-eval-batch-size```: eval batch size when **eval mode**
 - ```--lr```, ```--learning-rate```: learning rate
 
-### SimCLR
+### SimCLR-Resnet18
 
 ```shell
-$ python run.py --mode train --train-mode finetune --train-epochs 100
+$ python run.py --mode train --train-mode finetune --train-epochs 10
 ```
 
 Let's breaking down available flags

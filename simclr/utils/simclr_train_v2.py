@@ -7,7 +7,7 @@ from simclr.utils.evaluate import accuracy
 
 from tqdm import tqdm
 import logging
-import os
+
 import wandb
 
 def info_nce_loss(features, args):

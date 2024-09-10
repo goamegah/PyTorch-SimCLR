@@ -4,16 +4,15 @@ import sys
 
 import torch
 import wandb  # Import wandb
-from simclr.utils.config import save_config_file, save_checkpoint
+from simclr.utils.config import save_config_file, save_checkpoint_on_s3
 from simclr.utils.evaluate import accuracy
 
 def eval(model, 
-         optimizer, 
          test_loader,
-         args, 
-         criterion=None):
-
-    for epoch in range(args.epochs):
+         args):
+    
+    model.eval()
+    for epoch in range(args.eval_epochs):
         top1_accuracy = 0
         top5_accuracy = 0
         for counter, (x_batch, y_batch) in enumerate(test_loader):
@@ -127,8 +126,9 @@ def train(model,
     logging.info("Training has finished.")
 
     # save model checkpoints
-    checkpoint_name = f'./artefacts/{args.arch}_{args.mode}_{args.train_epochs:04d}.pth.tar'
-    save_checkpoint(state={'epoch': args.train_epochs,
+    checkpoint_name = f'{args.arch}_{args.mode}_{args.train_epochs:04d}.pth.tar'
+
+    save_checkpoint_on_s3(state={'epoch': args.train_epochs,
                            'arch': args.arch,
                            'state_dict': model.state_dict(),
                            'optimizer': optimizer.state_dict(),
