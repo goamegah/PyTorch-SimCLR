@@ -15,11 +15,9 @@
 ## Data Constraints
 We assume that we have 100 labeled data samples to train a deep learning architecture for image classification tasks. Our dataset is MNIST handwritten digit. So we have 100 images and 100 labels.
 
-
 <div align="center">
   <img width="100%" height="100%" alt="wf" src="./assets/workflow.png">
 </div>
-
 
 ## How Run Models
 In order to run models, try the following commands according to specific model.
