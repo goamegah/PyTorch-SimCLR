@@ -120,6 +120,7 @@ Check the [![Open In Colab](https://colab.research.google.com/assets/colab-badge
 
 - TensorboardX
 - wandb 
+- boto3
 
 To install these requirements most conveniently, you can use the `requirements.txt` file:
 
