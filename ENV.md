@@ -1,5 +1,8 @@
 # ENVIRONMENT VARIABLES YOU MAY NEED TO UPLOAD CHECKPOINTS ON S3 BUCKET
 
+Put this configuration your ```.env``` file.
+
+```conf
 ### AWS credentials
 AWS_ACCESS_KEY_ID=""
 AWS_SECRET_ACCESS_KEY=""
@@ -10,6 +13,7 @@ AWS_S3_BUCKET_OBJECT_NAME="bucketname/file"
 
 ###  PROJECT DIRS
 ROOT_DIR="your root directory"
+```
 
 To use environment variables in your code, you can follow these steps:
 
